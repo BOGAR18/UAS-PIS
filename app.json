@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "InventoryMobileProject",
-    "slug": "InventoryMobileProject",
+    "name": "InventoryMobile",
+    "slug": "InventoryMobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/inventory.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/inventory.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,7 +19,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.bogar18.InventoryMobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
