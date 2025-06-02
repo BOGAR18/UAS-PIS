@@ -13,8 +13,6 @@ const Splash = ({ navigation }) => {
           // Navigasi berdasarkan role yang ditemukan
           if (userRole === 'Admin') {
             navigation.replace('AdminTabs'); // Arahkan ke AdminTabs jika admin
-          } else if (userRole === 'Pegawai') {
-            navigation.replace('StaffTabs'); // Arahkan ke StaffTabs jika pegawai
           } else {
             navigation.replace('Tabs'); // Arahkan ke Tabs jika user
           }
@@ -34,7 +32,7 @@ const Splash = ({ navigation }) => {
   return (
     <View style={styles.pages}>
       <Image 
-        source={require('../assets/inventory.jpg')} 
+        source={require('../assets/logo.png')} 
         style={styles.image} 
         resizeMode="contain" 
       />

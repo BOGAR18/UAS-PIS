@@ -1,39 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
-import { NativeBaseProvider, Text } from "native-base";
+import { NativeBaseProvider, Text, Badge, Box, Icon } from "native-base";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import FIREBASE from "./actions/config/FIREBASE/index.js";
+import { getData } from "./utils/index.js";
 
 // Import custom screens
-import Home from "./screens/home";
-import Profile from "./screens/profile";
-import Splash from "./screens/splash";
-import Login from "./screens/login";
-import StafHome from "./screens/staf-home";
-import StafProfile from "./screens/staf-profile";
-import AdminAkun from "./screens/admin-akun";
-import AdminPegawai from "./screens/admin-pegawai";
-import AdminUp3 from "./screens/admin-up3";
-import AdminProfile from "./screens/admin-profile";
-import AdminEditAkun from "./screens/admin-editakun.js";
+import UserHome from "./screens/user-home.js";
+import UserBeliObat from "./screens/user-beliobat.js";
+import UserObat from "./screens/user-obat.js";
+import UserProfile from "./screens/profile.js";
+import Splash from "./screens/splash.js";
+import Login from "./screens/login.js";
+import Register from "./screens/register.js";
+import AdminObat from "./screens/admin-obat.js";
+import AdminRequest from "./screens/admin-request.js";
+import Invoice from "./screens/admin-invoice.js";
+import AdminTambahObat from "./screens/admin-tambahobat.js";
+import Profile from "./screens/profile.js";
+import AdminEditObat from "./screens/admin-editobat.js";
 
 // Navigator Declaration
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const noHead = { headerShown: false };
-
 // Common tab bar style configuration
 const commonTabBarStyle = {
   height: 75,
   paddingBottom: 10,
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  backgroundColor: "rgba(255, 255, 255, 0.95)",
   borderTopWidth: 1,
-  borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  borderTopColor: "rgba(0, 0, 0, 0.1)",
   elevation: 8,
-  shadowColor: '#000',
+  shadowColor: "#000",
   shadowOffset: {
     width: 0,
     height: -4,
@@ -44,6 +47,39 @@ const commonTabBarStyle = {
 
 // UP3 Tabs Navigator
 const Tabs = () => {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [user, setUser] = useState(null);
+
+  const commonTabBarStyle = {
+    backgroundColor: "white",
+    height: 75,
+    paddingBottom: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  };
+
+  // Options untuk hide header jika diperlukan
+  const noHead = {
+    headerShown: false,
+  };
+
+  useEffect(() => {
+    // Mengambil data user saat komponen dimuat
+    const fetchUser = async () => {
+      try {
+        const userData = await getData("user");
+        if (userData) {
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -56,122 +92,100 @@ const Tabs = () => {
             case "Profile":
               iconName = focused ? "person" : "person-outline";
               break;
-            case "Barang":
-              iconName = focused ? "archive" : "archive-outline";
-              break;
-            case "Retur":
-              iconName = focused ? "refresh-circle" : "refresh-circle-outline";
-              break;
           }
+
           return (
-            <Ionicons
-              name={iconName}
-              size={24}
-              color={focused ? "#2563eb" : "#64748b"}
-            />
+            <Box position="relative">
+              <Ionicons
+                name={iconName}
+                size={24}
+                color={focused ? "#10b981" : "#64748b"} // Emerald-500 untuk focused
+              />
+            </Box>
           );
         },
-        tabBarIconStyle: { 
-          marginTop: 10,
-        },
         tabBarStyle: commonTabBarStyle,
-        tabBarLabelStyle: {
-          fontSize: 12,
-          marginTop: 4,
-        },
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarLabel: ({ focused }) => (
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: focused ? "600" : "400",
+              color: focused ? "#10b981" : "#64748b", // Emerald-500 untuk focused
+              marginTop: 4,
+            }}
+          >
+            {route.name}
+          </Text>
+        ),
+        tabBarActiveTintColor: "#10b981", // Emerald-500
+        tabBarInactiveTintColor: "#64748b", // Slate-500
       })}
     >
-      <Tab.Screen name="Home" component={Home} options={noHead} />
-      {/* <Tab.Screen name="Barang" component={Barang} options={noHead} />
-      <Tab.Screen name="Retur" component={Retur} options={noHead} /> */}
+      <Tab.Screen name="Home" component={UserHome} options={noHead} />
       <Tab.Screen name="Profile" component={Profile} options={noHead} />
     </Tab.Navigator>
   );
 };
 
-// Bottom Tabs for Admin
 const AdminTabs = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
-          let iconName;
-          switch (route.name) {
-            case "Dashboard":
-              iconName = focused ? "stats-chart" : "stats-chart-outline";
-              break;
-            case "Akun":
-              iconName = focused ? "people" : "people-outline";
-              break;
-            case "Notifikasi":
-              iconName = focused ? "notifications" : "notifications-outline";
-              break;
-            case "Profile":
-              iconName = focused ? "person" : "person-outline";
-              break;
-          }
-          return (
-            <Ionicons 
-              name={iconName} 
-              size={24} 
-              color={focused ? "#2563eb" : "#64748b"} 
-            />
-          );
-        },
-        tabBarStyle: commonTabBarStyle,
-        tabBarLabel: ({ focused }) => (
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: focused ? '600' : '400',
-              color: focused ? '#2563eb' : '#64748b',
-              marginTop: 4,
-            }}
-          >
-            {route.name}
-          </Text>
-        ),
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#64748b',
-      })}
-    >
-      {/* <Tab.Screen name="Dashboard" component={AdminDashboard} options={noHead} /> */}
-      <Tab.Screen name="Akun" component={AdminAkun} options={noHead} />
-      {/* <Tab.Screen name="Notifikasi" component={AdminNotifikasi} options={noHead} /> */}
-      <Tab.Screen name="Profile" component={AdminProfile} options={noHead} />
-    </Tab.Navigator>
-  );
-};
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [user, setUser] = useState(null);
 
-// Bottom Tabs for Staff Gudang
-const StaffTabs = () => {
+  const commonTabBarStyle = {
+    backgroundColor: "white",
+    height: 75,
+    paddingBottom: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  };
+
+  const noHead = {
+    headerShown: false,
+  };
+
+  useEffect(() => {
+    // Mengambil data user saat komponen dimuat
+    const fetchUser = async () => {
+      try {
+        const userData = await getData("user");
+        if (userData) {
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused }) => {
           let iconName;
           switch (route.name) {
-            case "Home":
-              iconName = focused ? "home" : "home-outline";
-              break;
-            case "Barang":
-              iconName = focused ? "cube" : "cube-outline";
-              break;
-            case "Retur":
-              iconName = focused ? "refresh-circle" : "refresh-circle-outline";
-              break;
-            case "Profile":
-              iconName = focused ? "person" : "person-outline";
-              break;
+            case "Data Obat":
+            iconName = focused ? "stats-chart" : "stats-chart-outline";
+            break;
+            case "Request":
+            iconName = focused ? "people" : "people-outline";
+            break;
+          case "Profile":
+            iconName = focused ? "person" : "person-outline";
+            break;
           }
+
           return (
-            <Ionicons 
-              name={iconName} 
-              size={24} 
-              color={focused ? "#2563eb" : "#64748b"} 
-            />
+            <Box position="relative">
+              <Ionicons
+                name={iconName}
+                size={24}
+                color={focused ? "#10b981" : "#64748b"} // Emerald-500 untuk focused
+              />
+            </Box>
           );
         },
         tabBarStyle: commonTabBarStyle,
@@ -179,22 +193,21 @@ const StaffTabs = () => {
           <Text
             style={{
               fontSize: 12,
-              fontWeight: focused ? '600' : '400',
-              color: focused ? '#2563eb' : '#64748b',
+              fontWeight: focused ? "600" : "400",
+              color: focused ? "#10b981" : "#64748b", // Emerald-500 untuk focused
               marginTop: 4,
             }}
           >
             {route.name}
           </Text>
         ),
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: "#10b981", // Emerald-500
+        tabBarInactiveTintColor: "#64748b", // Slate-500
       })}
     >
-      <Tab.Screen name="Home" component={StafHome} options={noHead} />
-      {/* <Tab.Screen name="Barang" component={StafBarang} options={noHead} /> */}
-      {/* <Tab.Screen name="Retur" component={StafRetur} options={noHead} /> */}
-      <Tab.Screen name="Profile" component={StafProfile} options={noHead} />
+      <Tab.Screen name="Data Obat" component={AdminObat} options={noHead} />
+       <Tab.Screen name="Request" component={AdminRequest} options={noHead} />
+      <Tab.Screen name="Profile" component={Profile} options={noHead} />
     </Tab.Navigator>
   );
 };
@@ -207,12 +220,42 @@ const App = () => {
         <Stack.Navigator initialRouteName="Splash">
           <Stack.Screen name="Splash" component={Splash} options={noHead} />
           <Stack.Screen name="Tabs" component={Tabs} options={noHead} />
-          <Stack.Screen name="AdminTabs" component={AdminTabs} options={noHead} />
-          <Stack.Screen name="StaffTabs" component={StaffTabs} options={noHead} />
+          <Stack.Screen
+            name="AdminTabs"
+            component={AdminTabs}
+            options={noHead}
+          />
           <Stack.Screen name="Login" component={Login} options={noHead} />
-          <Stack.Screen name="AdminUp3" component={AdminUp3} options={noHead} />
-          <Stack.Screen name="AdminPegawai" component={AdminPegawai} options={noHead} />
-          <Stack.Screen name="AdminEditAkun" component={AdminEditAkun} options={noHead} />
+          <Stack.Screen
+            name="Invoice"
+            component={Invoice}
+            options={noHead}
+          />
+           <Stack.Screen
+            name="Register"
+            component={Register}
+            options={noHead}
+          />
+           <Stack.Screen
+            name="UserBeliObat"
+            component={UserBeliObat}
+            options={noHead}
+          />
+           <Stack.Screen
+            name="AdminTambahObat"
+            component={AdminTambahObat}
+            options={noHead}
+          />
+           <Stack.Screen
+            name="UserObat"
+            component={UserObat}
+            options={noHead}
+          />
+           <Stack.Screen
+            name="AdminEditObat"
+            component={AdminEditObat}
+            options={noHead}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </NativeBaseProvider>

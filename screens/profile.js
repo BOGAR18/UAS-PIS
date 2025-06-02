@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Linking, Alert } from "react-native";
 import {
   StatusBar,
   Image,
@@ -65,11 +64,11 @@ const Profile = ({ navigation }) => {
   }, [navigation]);
 
   return (
-  <>
+    <>
       <Header title="Profile" />
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
 
-      <Box flex={1} p={4}>
+      <Box flex={1} p={5} mt={5}>
         {/* Profile Card */}
         <Box bg="white" borderRadius="3xl" shadow="2" overflow="hidden">
           {/* Banner */}
@@ -90,7 +89,7 @@ const Profile = ({ navigation }) => {
             <Box alignItems="center" mt={-24}>
               <Box bg="white" p={1} borderRadius="full" shadow="3">
                 <Image
-                  source={require("../assets/logo.png")}
+                  source={require("../assets/image.png")}
                   borderRadius="full"
                   h={32}
                   w={32}
@@ -108,13 +107,15 @@ const Profile = ({ navigation }) => {
               </VStack>
             </Box>
 
-            <Divider my={3} />
+            <Divider my={2} />
 
             {/* Profile Information */}
-            <VStack space={2}>
-              <ProfileCard icon="mail" 
-              title="Email" 
-              value={Profile?.email} />
+            <VStack space={1}>
+              <ProfileCard
+                icon="mail"
+                title="Email"
+                value={Profile?.email}
+              />
               <ProfileCard
                 icon="phone"
                 title="Nomor Telepon"
@@ -125,36 +126,6 @@ const Profile = ({ navigation }) => {
                 title="Status"
                 value={Profile?.status}
               />
-              <Button
-            onPress={() => {
-              // Use Linking API to open WhatsApp
-              Linking.openURL("whatsapp://send?phone=PHONE_NUMBER_HERE").catch(
-                (err) => {
-                  // If WhatsApp is not installed, you might want to handle that case
-                  console.error("An error occurred", err);
-                  Alert.alert(
-                    "Error",
-                    "WhatsApp is not installed on this device"
-                  );
-                }
-              );
-            }}
-            bg="green.500" // Changed to WhatsApp's color
-            _pressed={{ bg: "green.600" }}
-            py={4}
-            borderRadius="2xl"
-            shadow="2"
-            leftIcon={
-              <Icon
-                as={Feather}
-                name="message-circle"
-                size="sm"
-                color="white"
-              /> // Changed icon
-            }
-          >
-            Bantuan dan Dukungan
-          </Button>
             </VStack>
           </Box>
         </Box>
@@ -176,7 +147,7 @@ const Profile = ({ navigation }) => {
           </Button>
         </VStack>
       </Box>
-      </>
+    </>
   );
 };
 

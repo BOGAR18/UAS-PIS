@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "InventoryMobile",
-    "slug": "InventoryMobile",
+    "name": "ProjectUTS",
+    "slug": "ProjectUTS",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/inventory.jpg",
+    "icon": "./assets/image1.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/inventory.jpg",
+      "image": "./assets/image.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

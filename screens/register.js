@@ -66,21 +66,27 @@ const FormInput = ({ label, icon, isPassword, ...props }) => {
   );
 };
 
-const AdminPegawai = () => {
+const Register = () => {
   const navigation = useNavigation();
   const toast = useToast();
   const [nama, setNama] = useState("");
   const [jenisKelamin, setJenisKelamin] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
-  const [alamat, setAlamat] = useState("");
-  const [instansi, setInstansi] = useState("");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showModal, setShowModal] = useState(false);
 
   const handleSubmit = async () => {
-    if (!nama || !jenisKelamin || !noTelepon || !alamat || !email || !password || !confirmPassword) {
+    if (
+      !nama ||
+      !jenisKelamin ||
+      !noTelepon ||
+      !email ||
+      !password ||
+      !confirmPassword
+    ) {
       toast.show({
         description: "Mohon lengkapi semua field",
         placement: "top",
@@ -102,10 +108,8 @@ const AdminPegawai = () => {
       name: nama,
       jenis_kelamin: jenisKelamin,
       nomorhp: noTelepon,
-      alamat,
-      instansi,
       email,
-      status: "Pegawai",
+      status: "Customer",
     };
 
     try {
@@ -113,7 +117,7 @@ const AdminPegawai = () => {
       setShowModal(true);
     } catch (error) {
       toast.show({
-        description: error.message,
+        description: "Email sudah terdaftar, gunakan email lain",
         placement: "top",
         bg: "red.500",
       });
@@ -122,12 +126,12 @@ const AdminPegawai = () => {
 
   return (
     <ScrollView flex={1} bg="gray.50">
-      <Header title={"UID Jatim"} withBack={true} />
+      <Header title={"Register"} withBack={true} />
       <Box safeArea p={6} flex={1}>
-        <Box 
-          w="100%" 
-          p={6} 
-          bg="white" 
+        <Box
+          w="100%"
+          p={6}
+          bg="white"
           shadow={2}
           rounded="2xl"
           borderWidth={1}
@@ -135,18 +139,18 @@ const AdminPegawai = () => {
         >
           <VStack space={6}>
             <Box alignItems="center">
-              <Icon 
-                as={MaterialIcons} 
-                name="person-add" 
-                size={16} 
-                color="blue.500" 
+              <Icon
+                as={MaterialIcons}
+                name="person-add"
+                size={16}
+                color="blue.500"
                 mb={2}
               />
               <Heading size="lg" color="gray.800">
-                Tambah Akun Pegawai
+                Tambah Akun 
               </Heading>
               <Text fontSize="sm" color="gray.500" mt={1}>
-                Lengkapi data untuk membuat akun pegawai baru
+                Lengkapi data untuk membuat akun baru
               </Text>
             </Box>
 
@@ -162,7 +166,9 @@ const AdminPegawai = () => {
               />
 
               <FormControl>
-                <FormControl.Label _text={{ fontSize: "sm", fontWeight: "medium" }}>
+                <FormControl.Label
+                  _text={{ fontSize: "sm", fontWeight: "medium" }}
+                >
                   Jenis Kelamin
                 </FormControl.Label>
                 <Select
@@ -180,7 +186,13 @@ const AdminPegawai = () => {
                     endIcon: <Icon as={MaterialIcons} name="check" size={5} />,
                   }}
                   leftIcon={
-                    <Icon as={Feather} name="users" size={5} ml={2} color="gray.400" />
+                    <Icon
+                      as={Feather}
+                      name="users"
+                      size={5}
+                      ml={2}
+                      color="gray.400"
+                    />
                   }
                 >
                   <Select.Item label="Laki-laki" value="Laki-laki" />
@@ -195,22 +207,6 @@ const AdminPegawai = () => {
                 onChangeText={setNoTelepon}
                 placeholder="Masukkan nomor telepon"
                 keyboardType="phone-pad"
-              />
-
-              <FormInput
-                label="Alamat"
-                icon="map-pin"
-                value={alamat}
-                onChangeText={setAlamat}
-                placeholder="Masukkan alamat lengkap"
-              />
-
-              <FormInput
-                label="Instansi"
-                icon="briefcase"
-                value={instansi}
-                onChangeText={setInstansi}
-                placeholder="Masukkan nama instansi"
               />
 
               <FormInput
@@ -251,7 +247,7 @@ const AdminPegawai = () => {
               shadow={2}
               leftIcon={<Icon as={MaterialIcons} name="add" size="sm" />}
             >
-              Tambah Akun Pegawai
+              Daftar Akun
             </Button>
           </VStack>
         </Box>
@@ -261,7 +257,12 @@ const AdminPegawai = () => {
         <Modal.Content maxWidth="400px" borderRadius="2xl">
           <Box bg="blue.500" p={4} borderTopRadius="2xl">
             <HStack alignItems="center" space={2}>
-              <Icon as={MaterialIcons} name="check-circle" size={6} color="white" />
+              <Icon
+                as={MaterialIcons}
+                name="check-circle"
+                size={6}
+                color="white"
+              />
               <Text color="white" fontSize="lg" fontWeight="bold">
                 Sukses
               </Text>
@@ -270,7 +271,7 @@ const AdminPegawai = () => {
           <Modal.Body py={4}>
             <VStack space={3} alignItems="center">
               <Text fontSize="md" textAlign="center">
-                Akun pegawai berhasil dibuat!
+                Akun berhasil dibuat!
               </Text>
               <Button
                 w="full"
@@ -278,7 +279,7 @@ const AdminPegawai = () => {
                 _pressed={{ bg: "blue.600" }}
                 onPress={() => {
                   setShowModal(false);
-                  navigation.navigate("Akun");
+                  navigation.navigate("Login");
                 }}
                 borderRadius="lg"
               >
@@ -292,4 +293,4 @@ const AdminPegawai = () => {
   );
 };
 
-export default AdminPegawai;
+export default Register;

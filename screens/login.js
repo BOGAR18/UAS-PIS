@@ -1,8 +1,20 @@
-import { 
-  Text, Button, Box, VStack, Input, Heading, FormControl, StatusBar, Image, Center, useToast,
-  Icon, Pressable, HStack
+import {
+  Text,
+  Button,
+  Box,
+  VStack,
+  Input,
+  Heading,
+  FormControl,
+  StatusBar,
+  Image,
+  Center,
+  useToast,
+  Icon,
+  Pressable,
+  HStack,
 } from "native-base";
-import React, { useState } from "react"; 
+import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { loginUser } from "../actions/AuthAction";
 import { storeData } from "../utils";
@@ -10,9 +22,9 @@ import { Animated, Vibration } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const Login = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [formError, setFormError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [shakeAnimation] = useState(new Animated.Value(0));
   const toast = useToast();
@@ -20,10 +32,26 @@ const Login = ({ navigation }) => {
   const triggerShake = () => {
     Vibration.vibrate(100);
     Animated.sequence([
-      Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: -10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: 10, duration: 100, useNativeDriver: true }),
-      Animated.timing(shakeAnimation, { toValue: 0, duration: 100, useNativeDriver: true }),
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: -10,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 10,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(shakeAnimation, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
@@ -31,27 +59,23 @@ const Login = ({ navigation }) => {
     if (email && password) {
       try {
         const users = await loginUser(email, password);
-
-        if (users.status === 'Admin') {
-          await storeData('userRole', 'Admin');
-          navigation.replace('AdminTabs');
-        } else if (users.status === 'Pegawai') {
-          await storeData('userRole', 'Pegawai');
-          navigation.replace('StaffTabs');
+        if (users.status === "Admin") {
+          await storeData("userRole", "Admin");
+          navigation.replace("AdminTabs");
         } else {
-          await storeData('userRole', 'UP3');
-          navigation.replace('Tabs');
+          await storeData("userRole", "Customer");
+          navigation.replace("Tabs");
         }
       } catch (error) {
-        setFormError('Email atau Password salah!');
+        setFormError("Email atau Password salah!");
         triggerShake();
       }
     } else {
-      setFormError('Harap isi semua kolom!');
+      setFormError("Harap isi semua kolom!");
       triggerShake();
 
       toast.show({
-        title: "Form Tidak Lengkap", 
+        title: "Form Tidak Lengkap",
         description: "Mohon isi email dan password sebelum login.",
         status: "warning",
         duration: 3000,
@@ -60,7 +84,17 @@ const Login = ({ navigation }) => {
     }
   };
 
-  const renderInput = (placeholder, value, setValue, iconName, isPassword = false) => (
+  const goToRegister = () => {
+    navigation.navigate("Register");
+  };
+
+  const renderInput = (
+    placeholder,
+    value,
+    setValue,
+    iconName,
+    isPassword = false
+  ) => (
     <FormControl isInvalid={!!formError}>
       <FormControl.Label>
         <Text fontSize="sm" color="gray.700" fontWeight="medium">
@@ -110,7 +144,7 @@ const Login = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F0F4F8' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F0F4F8" }}>
       <StatusBar barStyle="dark-content" backgroundColor="#F0F4F8" />
       <Center flex={1} px={6} mb={20}>
         <VStack space={8} width="100%" maxW="400px">
@@ -141,11 +175,18 @@ const Login = ({ navigation }) => {
             <VStack space={5}>
               {renderInput("Email", email, setEmail, "email")}
               {renderInput("Password", password, setPassword, "lock", true)}
-              
+
               {formError ? (
                 <HStack space={1} mt={-3}>
-                  <Icon as={MaterialIcons} name="error" size={4} color="red.500" />
-                  <Text color="red.500" fontSize="xs">{formError}</Text>
+                  <Icon
+                    as={MaterialIcons}
+                    name="error"
+                    size={4}
+                    color="red.500"
+                  />
+                  <Text color="red.500" fontSize="xs">
+                    {formError}
+                  </Text>
                 </HStack>
               ) : null}
 
@@ -160,6 +201,17 @@ const Login = ({ navigation }) => {
               >
                 Login
               </Button>
+
+              <HStack justifyContent="center" space={1}>
+                <Text fontSize="sm" color="gray.500">
+                  Belum punya akun?
+                </Text>
+                <Pressable onPress={goToRegister}>
+                  <Text fontSize="sm" color="blue.500" fontWeight="medium">
+                    Daftar
+                  </Text>
+                </Pressable>
+              </HStack>
             </VStack>
           </Box>
         </VStack>
