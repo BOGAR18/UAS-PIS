@@ -57,12 +57,13 @@ const UserObat = ({ navigation }) => {
             obat.nama.toLowerCase().includes(searchQuery.toLowerCase())
           )) ||
         (item.metode_pembayaran &&
-          item.metode_pembayaran.toLowerCase().includes(searchQuery.toLowerCase()));
+          item.metode_pembayaran
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()));
 
       // Status filter
       const matchesStatus =
-        filterStatus === "All" ||
-        item.status === filterStatus;
+        filterStatus === "All" || item.status === filterStatus;
 
       // Payment status filter
       const matchesPembayaran =
@@ -102,11 +103,21 @@ const UserObat = ({ navigation }) => {
 
         // Calculate statistics
         const totalPembelian = pembelianArray.length;
-        const pending = pembelianArray.filter(item => item.status === "Pending").length;
-        const approved = pembelianArray.filter(item => item.status === "Disetujui" || item.status === "Approved").length;
-        const selesai = pembelianArray.filter(item => item.status === "Selesai" || item.status === "Completed").length;
+        const pending = pembelianArray.filter(
+          (item) => item.status === "Pending"
+        ).length;
+        const approved = pembelianArray.filter(
+          (item) => item.status === "Disetujui" || item.status === "Approved"
+        ).length;
+        const selesai = pembelianArray.filter(
+          (item) => item.status === "Selesai" || item.status === "Completed"
+        ).length;
         const totalSpent = pembelianArray
-          .filter(item => item.status === "Selesai" || item.status_pembayaran === "Sudah Dibayar")
+          .filter(
+            (item) =>
+              item.status === "Selesai" ||
+              item.status_pembayaran === "Sudah Dibayar"
+          )
           .reduce((sum, item) => sum + (item.total_harga || 0), 0);
 
         setStatsData({
@@ -166,22 +177,27 @@ const UserObat = ({ navigation }) => {
   };
 
   const getStatusText = (status) => {
-    switch(status) {
-      case "Pending": return "Menunggu Verifikasi";
+    switch (status) {
+      case "Pending":
+        return "Menunggu Verifikasi";
       case "Disetujui":
-      case "Approved": return "Disetujui";
+      case "Approved":
+        return "Disetujui";
       case "Ditolak":
-      case "Rejected": return "Ditolak";
+      case "Rejected":
+        return "Ditolak";
       case "Selesai":
-      case "Completed": return "Selesai";
-      default: return status || "Tidak Diketahui";
+      case "Completed":
+        return "Selesai";
+      default:
+        return status || "Tidak Diketahui";
     }
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -223,7 +239,11 @@ const UserObat = ({ navigation }) => {
       >
         <HStack justifyContent="space-between" alignItems="center" mb={2}>
           <VStack flex={1} mr={2}>
-            <Text fontSize={isPreview ? "sm" : "md"} fontWeight="semibold" color="gray.800">
+            <Text
+              fontSize={isPreview ? "sm" : "md"}
+              fontWeight="semibold"
+              color="gray.800"
+            >
               {obat.nama}
             </Text>
             {obat.kategori && (
@@ -233,7 +253,11 @@ const UserObat = ({ navigation }) => {
             )}
           </VStack>
           <VStack alignItems="flex-end">
-            <Text fontSize={isPreview ? "sm" : "md"} fontWeight="bold" color="emerald.600">
+            <Text
+              fontSize={isPreview ? "sm" : "md"}
+              fontWeight="bold"
+              color="emerald.600"
+            >
               {formatCurrency(obat.harga || 0)}
             </Text>
             <Text fontSize="xs" color="gray.500">
@@ -241,7 +265,7 @@ const UserObat = ({ navigation }) => {
             </Text>
           </VStack>
         </HStack>
-        
+
         {!isPreview && (
           <HStack justifyContent="space-between" alignItems="center">
             <Text fontSize="xs" color="gray.500">
@@ -259,11 +283,17 @@ const UserObat = ({ navigation }) => {
   const PembelianCard = ({ item }) => {
     const [expanded, setExpanded] = useState(false);
     const previewLimit = 2; // Tampilkan 2 obat pertama di preview
-    const hasMoreItems = item.obat_items && item.obat_items.length > previewLimit;
+    const hasMoreItems =
+      item.obat_items && item.obat_items.length > previewLimit;
 
     const toggleExpand = () => {
       setExpanded(!expanded);
     };
+
+    // Check if invoice is available
+    const hasInvoice =
+      (item.status === "Disetujui" || item.status === "Selesai") &&
+      item.invoice_number;
 
     return (
       <Box
@@ -279,10 +309,23 @@ const UserObat = ({ navigation }) => {
           <HStack justifyContent="space-between" alignItems="center" mb={3}>
             <VStack space={1} flex={1}>
               <HStack space={2} alignItems="center">
-                <Icon as={MaterialIcons} name="receipt" size={4} color="emerald.600" />
-                <Text fontSize="lg" fontWeight="bold" color="gray.800">
-                  #{item.id.substring(0, 8)}
-                </Text>
+                <Icon
+                  as={MaterialIcons}
+                  name="receipt"
+                  size={4}
+                  color="emerald.600"
+                />
+                {/* Display invoice number if available */}
+                {item.invoice_number && (
+                  <Badge
+                    colorScheme="emerald"
+                    variant="solid"
+                    size="sm"
+                    rounded="md"
+                  >
+                    {item.invoice_number}
+                  </Badge>
+                )}
               </HStack>
               <Text fontSize="sm" color="gray.600">
                 {formatDate(item.tanggal_pembelian || item.createdAt)}
@@ -309,27 +352,40 @@ const UserObat = ({ navigation }) => {
           </HStack>
 
           {/* Display rejection reason if item is rejected */}
-          {(item.status === "Ditolak" || item.status === "Rejected") && item.alasan_penolakan && (
-            <Box mb={3} p={3} bg="red.50" rounded="md" borderWidth={1} borderColor="red.100">
-              <Text fontSize="xs" color="red.700" fontWeight="medium">
-                Alasan Penolakan:
-              </Text>
-              <Text fontSize="sm" color="red.600">
-                {item.alasan_penolakan}
-              </Text>
-            </Box>
-          )}
+          {(item.status === "Ditolak" || item.status === "Rejected") &&
+            item.alasan_penolakan && (
+              <Box
+                mb={3}
+                p={3}
+                bg="red.50"
+                rounded="md"
+                borderWidth={1}
+                borderColor="red.100"
+              >
+                <Text fontSize="xs" color="red.700" fontWeight="medium">
+                  Alasan Penolakan:
+                </Text>
+                <Text fontSize="sm" color="red.600">
+                  {item.alasan_penolakan}
+                </Text>
+              </Box>
+            )}
 
           {/* Tampilkan preview obat langsung tanpa expand */}
           <VStack space={3} mb={3}>
             <HStack justifyContent="space-between" alignItems="center">
               <HStack space={2} alignItems="center">
-                <Icon as={MaterialIcons} name="medical-services" size={4} color="emerald.500" />
+                <Icon
+                  as={MaterialIcons}
+                  name="medical-services"
+                  size={4}
+                  color="emerald.500"
+                />
                 <Text fontSize="sm" color="emerald.700" fontWeight="medium">
                   Obat yang dibeli ({item.total_item || 0} item)
                 </Text>
               </HStack>
-              
+
               <Text fontSize="md" fontWeight="bold" color="emerald.600">
                 {formatCurrency(item.total_harga || 0)}
               </Text>
@@ -341,7 +397,7 @@ const UserObat = ({ navigation }) => {
                 {item.obat_items.slice(0, previewLimit).map((obat, index) => (
                   <ObatItem key={index} obat={obat} isPreview={true} />
                 ))}
-                
+
                 {hasMoreItems && !expanded && (
                   <Pressable onPress={toggleExpand}>
                     <Box
@@ -352,12 +408,31 @@ const UserObat = ({ navigation }) => {
                       borderColor="emerald.100"
                       borderStyle="dashed"
                     >
-                      <HStack justifyContent="center" alignItems="center" space={2}>
-                        <Icon as={MaterialIcons} name="more-horiz" size={4} color="emerald.600" />
-                        <Text fontSize="sm" color="emerald.600" fontWeight="medium">
-                          Lihat {item.obat_items.length - previewLimit} obat lainnya
+                      <HStack
+                        justifyContent="center"
+                        alignItems="center"
+                        space={2}
+                      >
+                        <Icon
+                          as={MaterialIcons}
+                          name="more-horiz"
+                          size={4}
+                          color="emerald.600"
+                        />
+                        <Text
+                          fontSize="sm"
+                          color="emerald.600"
+                          fontWeight="medium"
+                        >
+                          Lihat {item.obat_items.length - previewLimit} obat
+                          lainnya
                         </Text>
-                        <Icon as={MaterialIcons} name="keyboard-arrow-down" size={4} color="emerald.600" />
+                        <Icon
+                          as={MaterialIcons}
+                          name="keyboard-arrow-down"
+                          size={4}
+                          color="emerald.600"
+                        />
                       </HStack>
                     </Box>
                   </Pressable>
@@ -376,7 +451,12 @@ const UserObat = ({ navigation }) => {
           <VStack space={2} mb={expanded ? 4 : 0}>
             <HStack justifyContent="space-between" alignItems="center">
               <HStack space={2} alignItems="center">
-                <Icon as={MaterialIcons} name="payment" size={4} color="gray.500" />
+                <Icon
+                  as={MaterialIcons}
+                  name="payment"
+                  size={4}
+                  color="gray.500"
+                />
                 <Text fontSize="sm" color="gray.600">
                   {item.metode_pembayaran || "Tidak ada"}
                 </Text>
@@ -384,20 +464,27 @@ const UserObat = ({ navigation }) => {
 
               {item.status_pembayaran && (
                 <Badge
-                  colorScheme={item.status_pembayaran === "Sudah Dibayar" ? "success" : "warning"}
+                  colorScheme={
+                    item.status_pembayaran === "Sudah Dibayar"
+                      ? "success"
+                      : "warning"
+                  }
                   variant="outline"
                   size="sm"
                 >
-                  <Text fontSize="xs">
-                    {item.status_pembayaran}
-                  </Text>
+                  <Text fontSize="xs">{item.status_pembayaran}</Text>
                 </Badge>
               )}
             </HStack>
 
             {item.resep_required && (
               <HStack space={2} alignItems="center">
-                <Icon as={MaterialIcons} name="description" size={4} color="orange.500" />
+                <Icon
+                  as={MaterialIcons}
+                  name="description"
+                  size={4}
+                  color="orange.500"
+                />
                 <Text fontSize="xs" color="orange.600" fontWeight="medium">
                   Memerlukan resep dokter
                 </Text>
@@ -405,8 +492,34 @@ const UserObat = ({ navigation }) => {
             )}
           </VStack>
 
+          {/* Invoice Action Button */}
+          {hasInvoice && (
+            <VStack space={3} mt={3}mb={3}>
+              <Divider />
+              <Button
+                size="sm"
+                colorScheme="emerald"
+                variant="outline"
+                leftIcon={
+                  <Icon as={MaterialIcons} name="receipt-long" size="sm" />
+                }
+                onPress={() =>
+                  navigation.navigate("Invoice", {
+                    pembelianId: item.id,
+                    invoiceNumber: item.invoice_number,
+                  })
+                }
+                _text={{ fontWeight: "bold" }}
+              >
+                📄 Lihat Invoice
+              </Button>
+            </VStack>
+          )}
+
           {expanded && (
-            <VStack space={4} mt={4}>
+            <VStack space={4} mt={4
+
+            }>
               <Divider />
 
               {/* Tampilkan semua obat ketika expanded */}
@@ -426,13 +539,23 @@ const UserObat = ({ navigation }) => {
                 <Text fontSize="md" fontWeight="semibold" color="gray.700">
                   Detail Pesanan
                 </Text>
-                
+
                 {item.alamat_pengiriman && (
                   <Box bg="gray.50" p={3} rounded="lg">
                     <HStack space={2} alignItems="flex-start">
-                      <Icon as={MaterialIcons} name="location-on" size={4} color="gray.500" mt={0.5} />
+                      <Icon
+                        as={MaterialIcons}
+                        name="location-on"
+                        size={4}
+                        color="gray.500"
+                        mt={0.5}
+                      />
                       <VStack flex={1}>
-                        <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                        <Text
+                          fontSize="xs"
+                          color="gray.500"
+                          fontWeight="medium"
+                        >
                           Alamat Pengiriman
                         </Text>
                         <Text fontSize="sm" color="gray.700">
@@ -446,14 +569,66 @@ const UserObat = ({ navigation }) => {
                 {item.catatan && (
                   <Box bg="gray.50" p={3} rounded="lg">
                     <HStack space={2} alignItems="flex-start">
-                      <Icon as={MaterialIcons} name="note" size={4} color="gray.500" mt={0.5} />
+                      <Icon
+                        as={MaterialIcons}
+                        name="note"
+                        size={4}
+                        color="gray.500"
+                        mt={0.5}
+                      />
                       <VStack flex={1}>
-                        <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                        <Text
+                          fontSize="xs"
+                          color="gray.500"
+                          fontWeight="medium"
+                        >
                           Catatan
                         </Text>
                         <Text fontSize="sm" color="gray.700">
                           {item.catatan}
                         </Text>
+                      </VStack>
+                    </HStack>
+                  </Box>
+                )}
+
+                {/* Invoice info in expanded view */}
+                {item.invoice_number && (
+                  <Box
+                    bg="emerald.50"
+                    p={3}
+                    rounded="lg"
+                    borderWidth={1}
+                    borderColor="emerald.100"
+                  >
+                    <HStack space={2} alignItems="flex-start">
+                      <Icon
+                        as={MaterialIcons}
+                        name="receipt-long"
+                        size={4}
+                        color="emerald.600"
+                        mt={0.5}
+                      />
+                      <VStack flex={1}>
+                        <Text
+                          fontSize="xs"
+                          color="emerald.700"
+                          fontWeight="medium"
+                        >
+                          Invoice Number
+                        </Text>
+                        <Text
+                          fontSize="sm"
+                          color="emerald.800"
+                          fontWeight="bold"
+                        >
+                          {item.invoice_number}
+                        </Text>
+                        {item.invoice_date && (
+                          <Text fontSize="xs" color="emerald.600">
+                            Dibuat: {formatDate(item.invoice_date)}
+                          </Text>
+                        )}
                       </VStack>
                     </HStack>
                   </Box>
@@ -480,7 +655,7 @@ const UserObat = ({ navigation }) => {
 
   return (
     <>
-      <Header title="Riwayat Pembelian" withBack={true} />
+      <Header title="Healify" withBack={true} />
       <Box flex={1} bg="gray.100">
         <ScrollView
           refreshControl={
@@ -548,7 +723,10 @@ const UserObat = ({ navigation }) => {
                 </VStack>
                 <VStack alignItems="center">
                   <Text fontSize="lg" color="white" fontWeight="bold">
-                    {formatCurrency(statsData.totalSpent).replace(/\D/g, '').slice(0, -3)}K
+                    {formatCurrency(statsData.totalSpent)
+                      .replace(/\D/g, "")
+                      .slice(0, -3)}
+                    K
                   </Text>
                   <Text fontSize="xs" color="emerald.100">
                     Total Belanja
@@ -559,8 +737,8 @@ const UserObat = ({ navigation }) => {
           </Box>
 
           {/* Search and Filter */}
-          <Box bg="white" p={4}>
-            <HStack space={2}>
+          {/* <Box bg="white" p={4}> */}
+            {/* <HStack space={2}>
               <Input
                 flex={1}
                 placeholder="Cari pembelian..."
@@ -587,18 +765,18 @@ const UserObat = ({ navigation }) => {
               >
                 Filter
               </Button>
-            </HStack>
+            </HStack> */}
 
-            <Actionsheet isOpen={isOpen} onClose={onClose}>
+            {/* <Actionsheet isOpen={isOpen} onClose={onClose}>
               <Actionsheet.Content>
                 <Box w="100%" h={60} px={4} justifyContent="center">
                   <Text fontSize="16" color="gray.500" fontWeight="bold">
                     Filter Pembelian
                   </Text>
-                </Box>
+                </Box> */}
 
                 {/* Payment Status Filter */}
-                <Divider />
+                {/* <Divider/>
                 <Actionsheet.Item
                   onPress={() => {
                     setFilterPembayaran("All");
@@ -608,7 +786,9 @@ const UserObat = ({ navigation }) => {
                     <Icon
                       as={MaterialIcons}
                       name="payment"
-                      color={filterPembayaran === "All" ? "emerald.500" : "gray.500"}
+                      color={
+                        filterPembayaran === "All" ? "emerald.500" : "gray.500"
+                      }
                     />
                   }
                 >
@@ -623,7 +803,11 @@ const UserObat = ({ navigation }) => {
                     <Icon
                       as={MaterialIcons}
                       name="paid"
-                      color={filterPembayaran === "Sudah Dibayar" ? "emerald.500" : "gray.500"}
+                      color={
+                        filterPembayaran === "Sudah Dibayar"
+                          ? "emerald.500"
+                          : "gray.500"
+                      }
                     />
                   }
                 >
@@ -638,7 +822,11 @@ const UserObat = ({ navigation }) => {
                     <Icon
                       as={MaterialIcons}
                       name="payment"
-                      color={filterPembayaran === "Belum Dibayar" ? "emerald.500" : "gray.500"}
+                      color={
+                        filterPembayaran === "Belum Dibayar"
+                          ? "emerald.500"
+                          : "gray.500"
+                      }
                     />
                   }
                 >
@@ -646,7 +834,7 @@ const UserObat = ({ navigation }) => {
                 </Actionsheet.Item>
               </Actionsheet.Content>
             </Actionsheet>
-          </Box>
+          </Box> */}
 
           <Box p={4}>
             {/* Content Section */}
@@ -665,30 +853,42 @@ const UserObat = ({ navigation }) => {
                   color="gray.300"
                 />
                 <Text fontSize="lg" color="gray.500" mt={4} fontWeight="medium">
-                  {searchQuery || filterStatus !== "All" || filterPembayaran !== "All"
+                  {searchQuery ||
+                  filterStatus !== "All" ||
+                  filterPembayaran !== "All"
                     ? "Tidak ada pembelian yang cocok"
                     : "Belum ada riwayat pembelian"}
                 </Text>
                 <Text fontSize="sm" color="gray.400" mt={2} textAlign="center">
-                  {searchQuery || filterStatus !== "All" || filterPembayaran !== "All"
+                  {searchQuery ||
+                  filterStatus !== "All" ||
+                  filterPembayaran !== "All"
                     ? "Coba ubah filter atau kata kunci pencarian"
                     : "Mulai belanja obat untuk melihat riwayat di sini"}
                 </Text>
-                {(!searchQuery && filterStatus === "All" && filterPembayaran === "All") && (
-                  <Button
-                    mt={4}
-                    size="sm"
-                    bg="emerald.500"
-                    _pressed={{ bg: "emerald.600" }}
-                    onPress={() => navigation.navigate("UserBeliObat")}
-                    leftIcon={<Icon as={MaterialIcons} name="add-shopping-cart" size="xs" />}
-                    rounded="lg"
-                  >
-                    <Text color="white" fontSize="sm" fontWeight="medium">
-                      Mulai Belanja
-                    </Text>
-                  </Button>
-                )}
+                {!searchQuery &&
+                  filterStatus === "All" &&
+                  filterPembayaran === "All" && (
+                    <Button
+                      mt={4}
+                      size="sm"
+                      bg="emerald.500"
+                      _pressed={{ bg: "emerald.600" }}
+                      onPress={() => navigation.navigate("UserBeliObat")}
+                      leftIcon={
+                        <Icon
+                          as={MaterialIcons}
+                          name="add-shopping-cart"
+                          size="xs"
+                        />
+                      }
+                      rounded="lg"
+                    >
+                      <Text color="white" fontSize="sm" fontWeight="medium">
+                        Mulai Belanja
+                      </Text>
+                    </Button>
+                  )}
               </Center>
             )}
           </Box>

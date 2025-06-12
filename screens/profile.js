@@ -21,8 +21,8 @@ import { logoutUser } from "../actions/AuthAction";
 
 const ProfileCard = ({ icon, title, value }) => (
   <HStack space={4} alignItems="center" py={3}>
-    <Box bg="blue.50" p={2} borderRadius="lg">
-      <Icon as={Feather} name={icon} size={5} color="blue.500" />
+    <Box bg="emerald.50" p={2} borderRadius="lg">
+      <Icon as={Feather} name={icon} size={5} color="emerald.500" />
     </Box>
     <VStack>
       <Text fontSize="sm" color="gray.500">

@@ -156,10 +156,10 @@ const Login = ({ navigation }) => {
               alt="Logo"
               resizeMode="contain"
             />
-            <Heading fontSize="3xl" color="#004aad" mt={6} fontWeight="bold">
+            <Heading fontSize="3xl" color="emerald.500" mt={6} fontWeight="bold">
               Selamat Datang
             </Heading>
-            <Text fontSize="md" color="gray.600" mt={2}>
+            <Text fontSize="md" color="emerald.600" mt={2}>
               Silakan login untuk melanjutkan
             </Text>
           </Center>
@@ -193,8 +193,8 @@ const Login = ({ navigation }) => {
               <Button
                 h={12}
                 borderRadius={12}
-                bgColor="#004aad"
-                _pressed={{ bgColor: "#003280" }}
+                bgColor="emerald.500"
+                _pressed={{ bgColor: "emerald.700" }}
                 _text={{ color: "white", fontSize: "md", fontWeight: "bold" }}
                 onPress={login}
                 shadow={2}
@@ -207,7 +207,7 @@ const Login = ({ navigation }) => {
                   Belum punya akun?
                 </Text>
                 <Pressable onPress={goToRegister}>
-                  <Text fontSize="sm" color="blue.500" fontWeight="medium">
+                  <Text fontSize="sm" color="emerald.500" fontWeight="medium">
                     Daftar
                   </Text>
                 </Pressable>

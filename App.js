@@ -18,7 +18,7 @@ import Login from "./screens/login.js";
 import Register from "./screens/register.js";
 import AdminObat from "./screens/admin-obat.js";
 import AdminRequest from "./screens/admin-request.js";
-import Invoice from "./screens/admin-invoice.js";
+import Invoice from "./screens/invoice.js";
 import AdminTambahObat from "./screens/admin-tambahobat.js";
 import Profile from "./screens/profile.js";
 import AdminEditObat from "./screens/admin-editobat.js";

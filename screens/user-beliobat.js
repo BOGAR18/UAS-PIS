@@ -142,16 +142,68 @@ const UserBeliObat = ({ navigation }) => {
       const obatData = snapshot.val();
 
       if (obatData) {
-        const availableObat = [];
+        const obatMap = new Map();
 
-        Object.values(obatData).forEach((item) => {
-          // Only show active medicines with stock > 0 and not expired
+        Object.entries(obatData).forEach(([firebaseKey, item]) => {
+          // Only process active medicines with stock > 0 and not expired
           if (item.status === "Aktif" && 
               item.jumlah_obat > 0 && 
               moment(item.tanggal_kadaluarsa).isAfter(moment())) {
-            availableObat.push(item);
+            
+            const key = item.nama_obat; // Group by medicine name
+            
+            if (obatMap.has(key)) {
+              // If medicine already exists, update the aggregated data
+              const existing = obatMap.get(key);
+              
+              // Add to total stock
+              existing.jumlah_obat += item.jumlah_obat;
+              
+              // Keep track of all batches (for later use in stock deduction)
+              existing.batches.push({
+                firebaseKey: firebaseKey,
+                batch_obat: item.batch_obat,
+                jumlah_obat: item.jumlah_obat,
+                tanggal_kadaluarsa: item.tanggal_kadaluarsa,
+                harga_satuan: item.harga_satuan
+              });
+              
+              // Sort batches by expiry date (FIFO - First In First Out)
+              existing.batches.sort((a, b) => 
+                moment(a.tanggal_kadaluarsa).diff(moment(b.tanggal_kadaluarsa))
+              );
+              
+              // Update earliest expiry date
+              existing.tanggal_kadaluarsa = existing.batches[0].tanggal_kadaluarsa;
+              
+              // Calculate weighted average price
+              const totalValue = existing.batches.reduce((sum, batch) => 
+                sum + (batch.harga_satuan * batch.jumlah_obat), 0
+              );
+              existing.harga_satuan = Math.round(totalValue / existing.jumlah_obat);
+              
+            } else {
+              // New medicine, add to map with batch tracking
+              obatMap.set(key, {
+                ...item,
+                jumlah_obat: item.jumlah_obat,
+                batches: [{
+                  firebaseKey: firebaseKey,
+                  batch_obat: item.batch_obat,
+                  jumlah_obat: item.jumlah_obat,
+                  tanggal_kadaluarsa: item.tanggal_kadaluarsa,
+                  harga_satuan: item.harga_satuan
+                }]
+              });
+            }
           }
         });
+        
+        // Convert map to array
+        const availableObat = Array.from(obatMap.values());
+        
+        // Sort by medicine name for better UX
+        availableObat.sort((a, b) => a.nama_obat.localeCompare(b.nama_obat));
         
         return availableObat;
       } else {
@@ -233,145 +285,224 @@ const UserBeliObat = ({ navigation }) => {
     }
   };
 
- // Updated uploadFileResep function using the same pattern as uploadFileSurat
-const uploadFileResep = async (pembelian_id, fileResep) => {
-  if (fileResep) {
-    try {
-      const response = await fetch(fileResep.uri);
-      const blob = await response.blob();
+  const uploadFileResep = async (pembelian_id, fileResep) => {
+    if (fileResep) {
+      try {
+        const response = await fetch(fileResep.uri);
+        const blob = await response.blob();
 
-      const fileName = `${pembelian_id}_${fileResep.name}`;
-      const reference = FIREBASE.storage().ref(`resep_obat/${fileName}`);
+        const fileName = `${pembelian_id}_${fileResep.name}`;
+        const reference = FIREBASE.storage().ref(`resep_obat/${fileName}`);
 
-      await reference.put(blob);
+        await reference.put(blob);
 
-      const downloadURL = await reference.getDownloadURL();
-      return downloadURL;
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      throw error;
+        const downloadURL = await reference.getDownloadURL();
+        return downloadURL;
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        throw error;
+      }
     }
-  }
-  return null;
-};
+    return null;
+  };
 
-// Updated addPembelianObat function with simplified upload approach
-const addPembelianObat = async () => {
-  // Validation
-  const validationError = validateForm();
-  if (validationError) {
-    setFormError(validationError);
-    setModalVisible(true);
-    setModalMessage(validationError);
-    return;
-  }
-
-  setIsSaving(true);
-  setPaymentModalVisible(true);
-
-  try {
-    // Start payment process
-    const paymentSuccess = await processPayment();
-    
-    if (paymentSuccess) {
-      // Continue with the actual saving process
-      const newRef = FIREBASE.database().ref("pembelian_obat").push();
-      const pembelian_id = newRef.key;
-
-      let fileResepURL = null;
+  const updateStokObat = async (obatItems) => {
+    try {
+      const updates = {};
       
-      // Upload file if exists
-      if (fileResep) {
-        try {
-          fileResepURL = await uploadFileResep(pembelian_id, fileResep);
-        } catch (uploadError) {
-          console.error("File upload failed:", uploadError);
-          // Continue without file if upload fails
-          showModal("Warning", "Pesanan berhasil dibuat, tetapi file resep gagal diupload. Silakan hubungi apoteker.");
+      for (const item of obatItems) {
+        // Find the medicine in our grouped data
+        const selectedObat = obatOptions.find(
+          option => option.kode_obat === item.kode_obat
+        );
+        
+        if (selectedObat && selectedObat.batches) {
+          let remainingToDeduct = item.jumlah;
+          
+          // Process batches in FIFO order (already sorted by expiry date)
+          for (const batch of selectedObat.batches) {
+            if (remainingToDeduct <= 0) break;
+            
+            const obatRef = FIREBASE.database().ref(`obat/${batch.firebaseKey}`);
+            const snapshot = await obatRef.once("value");
+            
+            if (snapshot.exists()) {
+              const currentData = snapshot.val();
+              const currentStok = currentData.jumlah_obat;
+              
+              // Calculate how much to deduct from this batch
+              const deductAmount = Math.min(remainingToDeduct, currentStok);
+              const newStok = currentStok - deductAmount;
+              
+              // Update this batch
+              updates[`obat/${batch.firebaseKey}/jumlah_obat`] = Math.max(0, newStok);
+              updates[`obat/${batch.firebaseKey}/updatedAt`] = moment().toISOString();
+              
+              // Update status if stock is depleted
+              if (newStok <= 0) {
+                updates[`obat/${batch.firebaseKey}/status`] = "Habis";
+              }
+              
+              // Reduce remaining amount to deduct
+              remainingToDeduct -= deductAmount;
+            }
+          }
+          
+          // If we couldn't deduct all (shouldn't happen with proper validation)
+          if (remainingToDeduct > 0) {
+            console.warn(`Could not deduct all stock for ${item.nama}. Remaining: ${remainingToDeduct}`);
+          }
         }
       }
-
-      // Mapping obat items
-      const obatItems = items.map((item) => {
-        const selectedObat = obatOptions.find(
-          (option) => option.kode_obat === item.kodeObat
-        );
-        const obat_id = FIREBASE.database().ref().push().key;
-        return {
-          id: obat_id,
-          nama: item.namaObat || null,
-          kode_obat: item.kodeObat || null,
-          jenis: item.jenisObat || null,
-          kategori: item.kategoriObat || null,
-          jumlah: parseInt(item.jumlahBeli) || 0,
-          harga: parseFloat(item.hargaSatuan) || 0,
-          subtotal: parseFloat(item.subtotal) || 0,
-          batch_obat: selectedObat ? selectedObat.batch_obat || null : null,
-          tanggal_kadaluarsa: selectedObat ? selectedObat.tanggal_kadaluarsa || null : null,
-        };
-      });
-
-      const data = {
-        id: pembelian_id,
-        userId: user.uid,
-        
-        // Customer Information
-        nama_customer: customerData.namaCustomer,
-        nomor_telepon: customerData.nomorTelepon,
-        alamat_pengiriman: customerData.alamat,
-        email_customer: customerData.email,
-        
-        // Purchase Information
-        tanggal_pembelian: customerData.tanggalPembelian,
-        metode_pembayaran: customerData.metodePembayaran,
-        catatan: customerData.catatanKhusus,
-        
-        // Items and Pricing
-        obat_items: obatItems,
-        total_item: totalItem,
-        total_harga: totalHarga,
-        
-        // Status and Files
-        status: "Pending",
-        status_pembayaran: "Sudah Dibayar",
-        file_resep: fileResepURL || "",
-        resep_required: resepRequired,
-        
-        // Payment Information
-        payment_id: `PAY_${pembelian_id}`,
-        payment_method: customerData.metodePembayaran,
-        payment_status: "completed",
-        payment_date: moment().toISOString(),
-        
-        // Timestamps
-        createdAt: moment().toISOString(),
-        updatedAt: moment().toISOString(),
-      };
-
-      console.log("Data pembelian to be saved:", data);
-
-      await newRef.set(data);
-
-      // Update stok obat
-      await updateStokObat(obatItems);
-
-      // Show success message
-      setPaymentStep(2); // Complete
-      setPaymentMessage("Pembelian berhasil! Pesanan Anda sedang diproses.");
       
-      setTimeout(() => {
-        setPaymentModalVisible(false);
-        navigation.goBack();
-      }, 3000);
+      // Apply all updates at once
+      await FIREBASE.database().ref().update(updates);
+    } catch (error) {
+      console.error("Error updating stok obat:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error("Error saving data:", error);
-    setPaymentModalVisible(false);
-    showModal("Error", "Terjadi kesalahan saat memproses pembayaran: " + error.message);
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
+
+  const addPembelianObat = async () => {
+    // Validation
+    const validationError = validateForm();
+    if (validationError) {
+      setFormError(validationError);
+      setModalVisible(true);
+      setModalMessage(validationError);
+      return;
+    }
+
+    setIsSaving(true);
+    setPaymentModalVisible(true);
+
+    try {
+      // Start payment process
+      const paymentSuccess = await processPayment();
+      
+      if (paymentSuccess) {
+        // Continue with the actual saving process
+        const newRef = FIREBASE.database().ref("pembelian_obat").push();
+        const pembelian_id = newRef.key;
+
+        let fileResepURL = null;
+        
+        // Upload file if exists
+        if (fileResep) {
+          try {
+            fileResepURL = await uploadFileResep(pembelian_id, fileResep);
+          } catch (uploadError) {
+            console.error("File upload failed:", uploadError);
+            // Continue without file if upload fails
+            showModal("Warning", "Pesanan berhasil dibuat, tetapi file resep gagal diupload. Silakan hubungi apoteker.");
+          }
+        }
+
+        // Mapping obat items with batch tracking
+        const obatItems = items.map((item) => {
+          const selectedObat = obatOptions.find(
+            (option) => option.kode_obat === item.kodeObat
+          );
+          const obat_id = FIREBASE.database().ref().push().key;
+          
+          // Get batch information for tracking
+          let batchInfo = [];
+          if (selectedObat && selectedObat.batches) {
+            let remainingQty = parseInt(item.jumlahBeli);
+            
+            for (const batch of selectedObat.batches) {
+              if (remainingQty <= 0) break;
+              
+              const takeFromBatch = Math.min(remainingQty, batch.jumlah_obat);
+              if (takeFromBatch > 0) {
+                batchInfo.push({
+                  batch_obat: batch.batch_obat,
+                  jumlah: takeFromBatch,
+                  tanggal_kadaluarsa: batch.tanggal_kadaluarsa,
+                  harga_satuan: batch.harga_satuan
+                });
+                remainingQty -= takeFromBatch;
+              }
+            }
+          }
+          
+          return {
+            id: obat_id,
+            nama: item.namaObat || null,
+            kode_obat: item.kodeObat || null,
+            jenis: item.jenisObat || null,
+            kategori: item.kategoriObat || null,
+            jumlah: parseInt(item.jumlahBeli) || 0,
+            harga: parseFloat(item.hargaSatuan) || 0,
+            subtotal: parseFloat(item.subtotal) || 0,
+            // Store batch information for traceability
+            batch_info: batchInfo,
+            // Use earliest expiry date from selected batches
+            tanggal_kadaluarsa: batchInfo.length > 0 ? batchInfo[0].tanggal_kadaluarsa : null,
+          };
+        });
+
+        const data = {
+          id: pembelian_id,
+          userId: user.uid,
+          
+          // Customer Information
+          nama_customer: customerData.namaCustomer,
+          nomor_telepon: customerData.nomorTelepon,
+          alamat_pengiriman: customerData.alamat,
+          email_customer: customerData.email,
+          
+          // Purchase Information
+          tanggal_pembelian: customerData.tanggalPembelian,
+          metode_pembayaran: customerData.metodePembayaran,
+          catatan: customerData.catatanKhusus,
+          
+          // Items and Pricing
+          obat_items: obatItems,
+          total_item: totalItem,
+          total_harga: totalHarga,
+          
+          // Status and Files
+          status: "Pending",
+          status_pembayaran: "Sudah Dibayar",
+          file_resep: fileResepURL || "",
+          resep_required: resepRequired,
+          
+          // Payment Information
+          payment_id: `PAY_${pembelian_id}`,
+          payment_method: customerData.metodePembayaran,
+          payment_status: "completed",
+          payment_date: moment().toISOString(),
+          
+          // Timestamps
+          createdAt: moment().toISOString(),
+          updatedAt: moment().toISOString(),
+        };
+
+        console.log("Data pembelian to be saved:", data);
+
+        await newRef.set(data);
+
+        // Update stok obat
+        await updateStokObat(obatItems);
+
+        // Show success message
+        setPaymentStep(2); // Complete
+        setPaymentMessage("Pembelian berhasil! Pesanan Anda sedang diproses.");
+        
+        setTimeout(() => {
+          setPaymentModalVisible(false);
+          navigation.goBack();
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Error saving data:", error);
+      setPaymentModalVisible(false);
+      showModal("Error", "Terjadi kesalahan saat memproses pembayaran: " + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Dummy Payment Process
   const processPayment = async () => {
@@ -404,38 +535,6 @@ const addPembelianObat = async () => {
 
       processStep();
     });
-  };
-
-
-  const updateStokObat = async (obatItems) => {
-    try {
-      const updates = {};
-      
-      for (const item of obatItems) {
-        const obatRef = FIREBASE.database().ref("obat");
-        const snapshot = await obatRef.orderByChild("kode_obat").equalTo(item.kode_obat).once("value");
-        
-        if (snapshot.exists()) {
-          const obatData = snapshot.val();
-          const obatKey = Object.keys(obatData)[0];
-          const currentStok = obatData[obatKey].jumlah_obat;
-          const newStok = currentStok - item.jumlah;
-          
-          updates[`obat/${obatKey}/jumlah_obat`] = Math.max(0, newStok);
-          updates[`obat/${obatKey}/updatedAt`] = moment().toISOString();
-          
-          // Update status if stok habis
-          if (newStok <= 0) {
-            updates[`obat/${obatKey}/status`] = "Habis";
-          }
-        }
-      }
-      
-      await FIREBASE.database().ref().update(updates);
-    } catch (error) {
-      console.error("Error updating stok obat:", error);
-      throw error;
-    }
   };
 
   const validateForm = () => {
@@ -851,7 +950,7 @@ const addPembelianObat = async () => {
                   {obatOptions.map((option) => (
                     <Select.Item
                       key={option.kode_obat}
-                      label={`${option.nama_obat} - ${option.kategori_obat} - Stok: ${option.jumlah_obat} - Rp ${Number(option.harga_satuan).toLocaleString('id-ID')}`}
+                      label={`${option.nama_obat} (${option.kategori_obat}), Stok: ${option.jumlah_obat} - Rp ${Number(option.harga_satuan).toLocaleString('id-ID')}`}
                       value={option.kode_obat}
                     />
                   ))}

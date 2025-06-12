@@ -35,6 +35,7 @@ const UserHome = () => {
     totalSpent: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [hasMorePurchases, setHasMorePurchases] = useState(false);
 
   // Set moment locale to Indonesian
   moment.locale("id");
@@ -68,22 +69,24 @@ const UserHome = () => {
           const pembelianData = snapshot.val();
           if (pembelianData) {
             // Filter by current user and get recent purchases
-            const pembelianArray = Object.entries(pembelianData)
+            const allPembelianArray = Object.entries(pembelianData)
               .map(([key, value]) => ({
                 id: key,
                 ...value,
               }))
               .filter((item) => item.userId === userData.uid)
-              .sort((a, b) => new Date(b.createdAt || b.tanggal_pembelian) - new Date(a.createdAt || a.tanggal_pembelian))
-              .slice(0, 5); // Get 5 most recent items
+              .sort((a, b) => new Date(b.createdAt || b.tanggal_pembelian) - new Date(a.createdAt || a.tanggal_pembelian));
+            
+            const pembelianArray = allPembelianArray.slice(0, 3); // Get 3 most recent items
 
             setRecentPembelian(pembelianArray);
+            setHasMorePurchases(allPembelianArray.length > 3);
 
-            // Calculate statistics
-            const totalPembelian = pembelianArray.length;
-            const pending = pembelianArray.filter(item => item.status === "Pending").length;
-            const approved = pembelianArray.filter(item => item.status === "Disetujui" || item.status === "Approved").length;
-            const totalSpent = pembelianArray
+            // Calculate statistics using all data
+            const totalPembelian = allPembelianArray.length;
+            const pending = allPembelianArray.filter(item => item.status === "Pending").length;
+            const approved = allPembelianArray.filter(item => item.status === "Disetujui" || item.status === "Approved").length;
+            const totalSpent = allPembelianArray
               .filter(item => item.status === "Selesai" || item.status_pembayaran === "Sudah Dibayar")
               .reduce((sum, item) => sum + (item.total_harga || 0), 0);
 
@@ -95,6 +98,7 @@ const UserHome = () => {
             });
           } else {
             setRecentPembelian([]);
+            setHasMorePurchases(false);
             setStatsData({
               totalPembelian: 0,
               pending: 0,
@@ -326,7 +330,7 @@ const UserHome = () => {
                   Pembelian Terbaru
                 </Heading>
               </HStack>
-              {recentPembelian.length > 3 && (
+              {hasMorePurchases && (
                 <Pressable onPress={() => navigation.navigate("UserObat")}>
                   <Text color="emerald.600" fontSize="sm" fontWeight="medium">
                     Lihat Semua
@@ -340,7 +344,7 @@ const UserHome = () => {
                 <Spinner size="lg" color="emerald.500" />
                 <Text mt={2} color="gray.500">Memuat data pembelian...</Text>
               </Center>
-            ) : recentPembelian.length > 3 ? (
+            ) : recentPembelian.length > 0 ? (
               <VStack space={3}>
                 {recentPembelian.map((item) => (
                   <Pressable
@@ -357,12 +361,6 @@ const UserHome = () => {
                     >
                       <HStack justifyContent="space-between" alignItems="flex-start" mb={3}>
                         <VStack flex={1} space={1}>
-                          <HStack space={2} alignItems="center">
-                            <Icon as={MaterialIcons} name="receipt" size={4} color="emerald.600" />
-                            <Text fontWeight="bold" color="gray.800" fontSize="sm">
-                              Pembelian #{item.id.substring(0, 8)}
-                            </Text>
-                          </HStack>
                           <Text fontSize="xs" color="gray.500">
                             {formatDate(item.tanggal_pembelian)}
                           </Text>
